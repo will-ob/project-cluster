@@ -38,3 +38,7 @@ Notes
 
 Launching a cluster requires bootstraping nodes with cloud-config. Need to update cloudconfig with new discovery url.
 
+
+User config data is kept in ~/.project-cluster
+Service definitions are kept in ./lib/services
+Other assets are kept in ./lib
