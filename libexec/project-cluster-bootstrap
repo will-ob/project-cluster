@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Usage: project-cluster bootstrap <ip>
+# Summary: Initialize the server at <ip>. Adds the machine to this cluster's pool of resources.
+
+set -e
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+echo "Bootstrapping $1 ..."
+
+host=core@$1
+
+cloud_config_tmp_dir=/tmp/project-cluster
+mkdir -p $cloud_config_tmp_dir
+cloud_config_tmp=$cloud_config_tmp_dir/cloudinit.conf
+
+discovery_url=$2
+cat <<EOF > $cloud_config_tmp
+#cloud-config
+coreos:
+  etcd:
+    # generate a new token for each unique cluster from https://discovery.etcd.io/new?size=3
+    discovery: $discovery_url
+    # multi-region and multi-cloud deployments need to use \$public_ipv4
+    advertise-client-urls: http://\$public_ipv4:2379
+    initial-advertise-peer-urls: http://\$private_ipv4:2380
+    # listen on both the official ports and the legacy ports
+    # legacy ports can be omitted if your application doesn't depend on them
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    listen-peer-urls: http://\$private_ipv4:2380,http://\$private_ipv4:7001
+  fleet:
+      public-ip: \$public_ipv4
+      metadata: region=us-west
+  units:
+    - name: etcd.service
+      command: start
+    - name: fleet.service
+      command: start
+EOF
+
+# Copy & run cloudconfig on machine
+scp -i ~/.project-cluster/ident.pem $DIR/../lib/cloudinit.conf $host:/home/core/cloudinit.conf
+ssh -i ~/.project-cluster/ident.pem $host "sudo coreos-cloudinit --from-file /home/core/cloudinit.conf"
+

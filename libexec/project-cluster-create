@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Usage: project-cluster create <ip> [<ip>]*
+# Summary: Generates a new discovery token and bootstraps the ips passed.
+
+set -e
+
+# Check args, verify IPs
+ip_count=0
+ips=()
+for ip in "$@"
+do
+    echo "$ip"
+    if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      ip_count=$((ip_count+1))
+      ips+=("$ip")
+    else
+      echo "Arguments must be space-delimited, valid IPv4 addresses" >&2
+      exit 128
+    fi
+done
+
+# Generate discovery url
+echo "Generating discovery for $ip_count nodes"
+
+discovery_url=$(curl "https://discovery.etcd.io/new?size=$ip_count" 2>/dev/null)
+echo "$discovery_url"
+
+# Bootstrap each machine
+
+
+for ip in "$@"
+do
+  project-cluster bootstrap $ip $discovery_url
+done
+
+
+# Start consul on them all
+
+
+
+echo "Project cluster create: not implemented"
