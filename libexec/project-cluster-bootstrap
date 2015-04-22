@@ -18,18 +18,18 @@ cat <<EOF > $cloud_config_tmp
 #cloud-config
 coreos:
   etcd:
+    name: node\$public_ipv4
     # generate a new token for each unique cluster from https://discovery.etcd.io/new?size=3
     discovery: $discovery_url
-    # multi-region and multi-cloud deployments need to use \$public_ipv4
+    addr: \$public_ipv4:4001
+    peer-addr: \$private_ipv4:7001
     advertise-client-urls: http://\$public_ipv4:2379
     initial-advertise-peer-urls: http://\$private_ipv4:2380
-    # listen on both the official ports and the legacy ports
-    # legacy ports can be omitted if your application doesn't depend on them
     listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
     listen-peer-urls: http://\$private_ipv4:2380,http://\$private_ipv4:7001
   fleet:
       public-ip: \$public_ipv4
-      metadata: region=us-west
+      metadata: region=us-east
   units:
     - name: etcd.service
       command: start
@@ -38,6 +38,6 @@ coreos:
 EOF
 
 # Copy & run cloudconfig on machine
-scp -i ~/.project-cluster/ident.pem $DIR/../lib/cloudinit.conf $host:/home/core/cloudinit.conf
+scp -i ~/.project-cluster/ident.pem $cloud_config_tmp $host:/home/core/cloudinit.conf
 ssh -i ~/.project-cluster/ident.pem $host "sudo coreos-cloudinit --from-file /home/core/cloudinit.conf"
 
