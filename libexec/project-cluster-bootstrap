@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: project-cluster bootstrap <ip>
+# Usage: project-cluster bootstrap <ip> [<discovery_url> <bootstrap-count>]
 # Summary: Initialize the server at <ip>. Adds the machine to this cluster's pool of resources.
 
 set -e
@@ -8,12 +8,13 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 echo "Bootstrapping $1 ..."
 
 host=core@$1
+discovery_url=$2
+bootstrap_count=$3
 
 cloud_config_tmp_dir=/tmp/project-cluster
 mkdir -p $cloud_config_tmp_dir
 cloud_config_tmp=$cloud_config_tmp_dir/cloudinit.conf
 
-discovery_url=$2
 cat <<EOF > $cloud_config_tmp
 #cloud-config
 coreos:
@@ -21,7 +22,7 @@ coreos:
     name: node\$public_ipv4
     # generate a new token for each unique cluster from https://discovery.etcd.io/new?size=3
     discovery: $discovery_url
-    addr: \$public_ipv4:4001
+    addr: \$private_ipv4:4001
     peer-addr: \$private_ipv4:7001
     advertise-client-urls: http://\$public_ipv4:2379
     initial-advertise-peer-urls: http://\$private_ipv4:2380
@@ -35,6 +36,19 @@ coreos:
       command: start
     - name: fleet.service
       command: start
+    - name: consul.service
+      command: start
+      runtime: no
+      content: |
+        [Unit]
+        Description=Consul service directory
+
+        [Service]
+        ExecStartPre=-/usr/bin/mkdir /opt
+        ExecStartPre=-/usr/bin/wget --retry-connrefused -t 0 -nc -O /opt/bootstrap-consul https://gist.githubusercontent.com/will-ob/658b1d573a057c0d723a/raw/26dc34561f30b166547e77fcfe4fdbca6dd71885/bootstrap-consul.sh
+        ExecStartPre=-/usr/bin/chmod +x /opt/bootstrap-consul
+        ExecStart=/opt/bootstrap-consul $bootstrap_count
+
 EOF
 
 # Copy & run cloudconfig on machine

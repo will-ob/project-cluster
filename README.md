@@ -42,3 +42,9 @@ Launching a cluster requires bootstraping nodes with cloud-config. Need to updat
 User config data is kept in ~/.project-cluster
 Service definitions are kept in ./lib/services
 Other assets are kept in ./lib
+
+
+```
+docker exec -it <contid> bash
+docker run -p 8080:80 4443:443 -i nginx-rp:latest
+```

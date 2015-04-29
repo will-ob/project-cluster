@@ -30,7 +30,7 @@ echo "$discovery_url"
 
 for ip in "$@"
 do
-  project-cluster bootstrap $ip $discovery_url
+  project-cluster bootstrap $ip $discovery_url $ip_count
 done
 
 
