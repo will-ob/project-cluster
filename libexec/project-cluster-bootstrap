@@ -24,7 +24,8 @@ coreos:
     discovery: $discovery_url
     addr: \$private_ipv4:4001
     peer-addr: \$private_ipv4:7001
-    advertise-client-urls: http://\$public_ipv4:2379
+  etcd2:
+    advertise-client-urls: http://\$private_ipv4:2379
     initial-advertise-peer-urls: http://\$private_ipv4:2380
     listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
     listen-peer-urls: http://\$private_ipv4:2380,http://\$private_ipv4:7001
@@ -42,12 +43,35 @@ coreos:
       content: |
         [Unit]
         Description=Consul service directory
+        After=docker.service
+        Requires=docker.service
+        After=etcd.service
+        Requires=etcd.service
 
         [Service]
         ExecStartPre=-/usr/bin/mkdir /opt
-        ExecStartPre=-/usr/bin/wget --retry-connrefused -t 0 -nc -O /opt/bootstrap-consul https://gist.githubusercontent.com/will-ob/658b1d573a057c0d723a/raw/26dc34561f30b166547e77fcfe4fdbca6dd71885/bootstrap-consul.sh
+        ExecStartPre=-/usr/bin/docker pull progrium/consul
+        ExecStartPre=-/usr/bin/wget --retry-connrefused -t 0 -nc -O /opt/bootstrap-consul https://gist.githubusercontent.com/will-ob/658b1d573a057c0d723a/raw/4fd55333c02dc418346e059c8df0017be15250b1/bootstrap-consul.sh
         ExecStartPre=-/usr/bin/chmod +x /opt/bootstrap-consul
         ExecStart=/opt/bootstrap-consul $bootstrap_count
+    - name: registrator.service
+      command: start
+      runtime: no
+      content: |
+        [Unit]
+        Description=Docker service discovery
+        After=consul.service
+        Requires=consul.service
+        After=docker.service
+        Requires=docker.service
+
+        [Service]
+        Restart=always
+        ExecPreStart=-/usr/bin/docker kill registrator
+        ExecPreStart=-/usr/bin/docker rm registrator
+        ExecPreStart=-/usr/bin/docker pull gliderlabs/registrator:master
+        ExecStart=/usr/bin/docker run --rm --name registrator --net=host -v  /var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:master -ip \$private_ipv4 consul://\$private_ipv4:8500
+        ExecStop=/usr/bin/docker stop registrator
 
 EOF
 

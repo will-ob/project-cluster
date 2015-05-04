@@ -1,7 +1,9 @@
 [Unit]
 Description=Reverse Proxy for f7ops traffic.
 After=docker.service
+After=consul.service
 Requires=docker.service
+Requires=consul.service
 
 [Service]
 TimeoutStartSec=0

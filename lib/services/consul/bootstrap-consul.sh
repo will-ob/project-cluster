@@ -1,5 +1,7 @@
 #!/bin/bash
 
+## Note, this file is maintained at this gist:
+## https://gist.github.com/will-ob/658b1d573a057c0d723a
 
 # Inspired by Brandon Philips' consul bootstrap script
 # https://gist.github.com/philips/56fa3f5dae9060fbd100
